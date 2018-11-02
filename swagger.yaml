@@ -1,0 +1,172 @@
+---
+swagger: "2.0"
+info:
+  description: "API for Calculator Service"
+  version: "1.0.0"
+  title: "Calculator Service API"
+  contact:
+    email: "you@your-company.com"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "virtserver.swaggerhub.com"
+basePath: "/revigo/Calculadora/1.0.0"
+tags:
+- name: "admins"
+  description: "Secured Admin-only calls"
+- name: "developers"
+  description: "Operations available to regular developers"
+schemes:
+- "https"
+paths:
+  /sum:
+    get:
+      tags:
+      - "developers"
+      summary: "returns sum"
+      description: "The purpose of this operation is to get the sum result according\
+        \ to the given parameters\n"
+      operationId: "sum"
+      produces:
+      - "application/xml"
+      parameters:
+      - name: "int1"
+        in: "query"
+        description: "pass first parameter for sum"
+        required: true
+        type: "integer"
+      - name: "int2"
+        in: "query"
+        description: "pass second parameter for sum"
+        required: true
+        type: "integer"
+      - name: "int3"
+        in: "query"
+        description: "pass third parameter for sum"
+        required: true
+        type: "integer"
+      - name: "int4"
+        in: "query"
+        description: "pass fourth parameter for sum"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "returns sum result"
+          schema:
+            $ref: "#/definitions/ReturnedNumber"
+        400:
+          description: "bad input parameter"
+  /res:
+    get:
+      tags:
+      - "developers"
+      summary: "returns res"
+      description: "The purpose of this operation is to get the substraction result\
+        \ according to the given parameters\n"
+      operationId: "res"
+      produces:
+      - "application/xml"
+      parameters:
+      - name: "int1"
+        in: "query"
+        description: "pass first parameter for res"
+        required: true
+        type: "integer"
+      - name: "int2"
+        in: "query"
+        description: "pass second parameter for res"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "returns res result"
+          schema:
+            $ref: "#/definitions/ReturnedNumber"
+        400:
+          description: "bad input parameter"
+  /mul:
+    get:
+      tags:
+      - "developers"
+      summary: "returns product"
+      description: "The purpose of this operation is to get the product according\
+        \ to the given parameters\n"
+      operationId: "mul"
+      produces:
+      - "application/xml"
+      parameters:
+      - name: "int1"
+        in: "query"
+        description: "pass first parameter for mul"
+        required: true
+        type: "integer"
+      - name: "int2"
+        in: "query"
+        description: "pass second parameter for mul"
+        required: true
+        type: "integer"
+      - name: "int3"
+        in: "query"
+        description: "pass third parameter for mul"
+        required: true
+        type: "integer"
+      - name: "int4"
+        in: "query"
+        description: "pass fourth parameter for mul"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "returns mul result"
+          schema:
+            $ref: "#/definitions/ReturnedNumber"
+        400:
+          description: "bad input parameter"
+  /div:
+    get:
+      tags:
+      - "developers"
+      summary: "returns div"
+      description: "The purpose of this operation is to get the division result according\
+        \ to the given parameters\n"
+      operationId: "div"
+      produces:
+      - "application/xml"
+      parameters:
+      - name: "int1"
+        in: "query"
+        description: "pass first parameter for div"
+        required: true
+        type: "integer"
+      - name: "int2"
+        in: "query"
+        description: "pass second parameter for div"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "returns div result"
+          schema:
+            $ref: "#/definitions/ReturnedDivNumber"
+        400:
+          description: "bad input parameter"
+definitions:
+  ReturnedNumber:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "uuid"
+        example: 10
+    xml:
+      name: "Result"
+  ReturnedDivNumber:
+    type: "object"
+    properties:
+      id:
+        type: "number"
+        format: "uuid"
+        example: 10.0
+    xml:
+      name: "Result"
