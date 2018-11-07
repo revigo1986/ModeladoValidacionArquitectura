@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<conveniosBanco>
+	<convenio id="1111">
+		<nombre>codensa</nombre>
+		<endpoint>http://192.111.10.1:8080/codensa</endpoint>		
+	</convenio>
+	<convenio id="2222">
+		<nombre>gasNatural</nombre>
+		<endpoint>http://192.122.10.1:8080/gasNatural</endpoint>
+	</convenio>
+</conveniosBanco>
