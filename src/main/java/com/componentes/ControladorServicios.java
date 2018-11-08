@@ -1,7 +1,5 @@
 package com.componentes;
 
-//import java.util.Random;
-
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,18 +26,19 @@ public class ControladorServicios {
 
 	@RequestMapping(path = "consultarSaldoFactura/{idFactura}", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-	public Factura getInfoFactura(@PathVariable("idFactura") int idFactura) {
+	public FacturaInterna getInfoFactura(@PathVariable("idFactura") int idFactura) {
 		/*
 		 * Invocar metodo para devolver saldo se determinara el tipo de servicio a
 		 * consultar (agua, energia, gas) enrutamiento se manejara  con un archivo xml
 		 * se invocara servicio de German enviando numero de factura
 		 */
-		return enrutarAServicio(idFactura);
+		return enrutarAServicioExterno(idFactura);
 	}
 
-	private Factura enrutarAServicio(int idFactura) {
-		Factura factura = new Factura();
-		String descripcion = "No hay convenio asociado";
+	private FacturaInterna enrutarAServicioExterno(int idFactura) {
+		FacturaInterna facturaInterna = new FacturaInterna();
+		String descripcion = "No hay convenios disponibles";
+		facturaInterna.setDescripcion(descripcion);
 		try {
 			File fXmlFile = new File("/conveniosBanco.xml");
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -58,22 +57,18 @@ public class ControladorServicios {
 					 */
 					if (elemento.getAttribute("id").equals(Integer.toString(idFactura).substring(0, 4))) {
 						descripcion = "Factura del convenio "+elemento.getElementsByTagName("nombre").item(0).getTextContent();
-//						factura.setValorFactura(new Random().nextDouble() * 100000);
 						// Despacho al servicio externo correspondiente
-						factura = despacharAServicioExterno(elemento.getAttribute("endpoint")+idFactura);
+						facturaInterna = despacharAServicioExterno(elemento.getElementsByTagName("endpoint").item(0).getTextContent()+idFactura, descripcion);
 					}
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		//Valores provisionales mientras se recibe factura del servicio externo
-		factura.setDescripcion(descripcion);
-//		factura.setIdFactura(idFactura);
-		return factura;
+		return facturaInterna;
 	}
 
-	private Factura despacharAServicioExterno(String endpoint) throws IOException, JAXBException {
+	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion) throws IOException, JAXBException {
 		// Despacho al servicio externo correspondiente
 		URL url = new URL(endpoint);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -83,10 +78,18 @@ public class ControladorServicios {
 		JAXBContext jc = JAXBContext.newInstance(Factura.class);
 		InputStream xml = connection.getInputStream();
 		
-		//Transformaci�n del formato externo de la factura al formato interno
-		Factura factura = (Factura) jc.createUnmarshaller().unmarshal(xml);
-
+		Factura facturaExterna = (Factura) jc.createUnmarshaller().unmarshal(xml);
+		
 		connection.disconnect();
-		return factura;
+//		Transformacion del formato externo de la factura al formato interno
+		return transformarAFormatoInterno(facturaExterna, descripcion);
+	}
+	
+	private FacturaInterna transformarAFormatoInterno(Factura facturaExterna, String descripcion) {
+		FacturaInterna facturaInterna = new FacturaInterna();
+		facturaInterna.setIdFactura(facturaExterna.getIdFactura());
+		facturaInterna.setSaldoAPagar(facturaExterna.getValorFactura());
+		facturaInterna.setDescripcion(descripcion);
+		return facturaInterna;
 	}
 }

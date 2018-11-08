@@ -7,7 +7,6 @@ public class Factura {
 
     private int idFactura;
     private double valorFactura;
-    private String descripcion;
 
     public Factura() {
     }
@@ -16,10 +15,9 @@ public class Factura {
         this.valorFactura = valorFactura;
     }
 
-    public Factura(int idFactura, double valorFactura, String descripcion) {
+    public Factura(int idFactura, double valorFactura) {
         this.idFactura = idFactura;
         this.valorFactura = valorFactura;
-        this.descripcion = descripcion;
     }
 
     public int getIdFactura() {
@@ -37,12 +35,4 @@ public class Factura {
     public void setValorFactura(double valorFactura) {
         this.valorFactura = valorFactura;
     }
-
-	public String getDescripcion() {
-		return descripcion;
-	}
-
-	public void setDescripcion(String descripcion) {
-		this.descripcion = descripcion;
-	}
 }
