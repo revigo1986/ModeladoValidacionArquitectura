@@ -16,9 +16,9 @@ public class FacturaInterna {
         this.saldoAPagar = saldoAPagar;
     }
 
-    public FacturaInterna(int idFactura, double valorFactura, String descripcion) {
+    public FacturaInterna(int idFactura, double saldoAPagar, String descripcion) {
         this.idFactura = idFactura;
-        this.saldoAPagar = valorFactura;
+        this.saldoAPagar = saldoAPagar;
         this.descripcion = descripcion;
     }
 

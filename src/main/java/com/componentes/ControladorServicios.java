@@ -7,6 +7,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilder;
@@ -40,7 +46,7 @@ public class ControladorServicios {
 		String descripcion = "No hay convenios disponibles";
 		facturaInterna.setDescripcion(descripcion);
 		try {
-			File fXmlFile = new File("/conveniosBanco.xml");
+			File fXmlFile = new File("conveniosBanco.xml");
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 			Document doc = dBuilder.parse(fXmlFile);
@@ -68,27 +74,30 @@ public class ControladorServicios {
 		return facturaInterna;
 	}
 
-	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion) throws IOException, JAXBException {
+	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion) throws IOException, JAXBException, TransformerException{
 		// Despacho al servicio externo correspondiente
 		URL url = new URL(endpoint);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("GET");
 		connection.setRequestProperty("Accept", "application/xml");
 
-		JAXBContext jc = JAXBContext.newInstance(Factura.class);
-		InputStream xml = connection.getInputStream();
+		InputStream xmlFacturaExterna = connection.getInputStream();
 		
-		Factura facturaExterna = (Factura) jc.createUnmarshaller().unmarshal(xml);
-		
+		//Transformacion del formato externo de la factura al formato interno
+		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna);
 		connection.disconnect();
-//		Transformacion del formato externo de la factura al formato interno
-		return transformarAFormatoInterno(facturaExterna, descripcion);
+		return facturaInterna;
 	}
 	
-	private FacturaInterna transformarAFormatoInterno(Factura facturaExterna, String descripcion) {
-		FacturaInterna facturaInterna = new FacturaInterna();
-		facturaInterna.setIdFactura(facturaExterna.getIdFactura());
-		facturaInterna.setSaldoAPagar(facturaExterna.getValorFactura());
+	private FacturaInterna transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna) throws TransformerException, JAXBException{
+        Source xslt = new StreamSource(new File("transformador.xslt"));
+        Transformer transformer = TransformerFactory.newInstance().newTransformer(xslt);
+
+        Source text = new StreamSource(xmlFacturaExterna);
+        transformer.transform(text, new StreamResult(new File("facturaInterna.xml")));
+        
+        JAXBContext jc = JAXBContext.newInstance(FacturaInterna.class);
+        FacturaInterna facturaInterna = (FacturaInterna) jc.createUnmarshaller().unmarshal(new File("facturaInterna.xml"));
 		facturaInterna.setDescripcion(descripcion);
 		return facturaInterna;
 	}

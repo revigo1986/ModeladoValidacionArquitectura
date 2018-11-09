@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <conveniosBanco>
 	<convenio id="1111">
-		<nombre>codensa</nombre>
-		<endpoint>http://192.111.10.1:8080/codensa</endpoint>		
+		<nombre>claro</nombre>
+		<endpoint>http://localhost:8080/servicios/pagos/v1/payments/</endpoint>		
 	</convenio>
 	<convenio id="2222">
 		<nombre>gasNatural</nombre>
