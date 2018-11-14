@@ -1,0 +1,56 @@
+---
+swagger: "2.0"
+info:
+  description: "API para Consulta de Saldo de Factura"
+  version: "1.0.0"
+  title: "API Consulta de Saldo de Factura"
+  contact:
+    email: "you@your-company.com"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "virtserver.swaggerhub.com"
+basePath: "/revigo/ServiciosBanco/1.0.0"
+tags:
+- name: "admins"
+  description: "Secured Admin-only calls"
+- name: "developers"
+  description: "Operations available to regular developers"
+schemes:
+- "https"
+paths:
+  /consultarSaldoFactura:
+    get:
+      tags:
+      - "developers"
+      summary: "returns saldo"
+      description: "El objetivo de este servicio es devolver el saldo\na pagar\n"
+      operationId: "saldo"
+      produces:
+      - "application/xml"
+      parameters: []
+      responses:
+        200:
+          description: "devuelve saldo a pagar"
+          schema:
+            $ref: "#/definitions/FacturaInterna"
+        400:
+          description: "bad input parameter"
+definitions:
+  FacturaInterna:
+    type: "object"
+    properties:
+      idFactura:
+        type: "integer"
+        format: "uuid"
+        example: 1111
+      descripcion:
+        type: "string"
+        format: "uuid"
+        example: "No hay convenios disponibles"
+      saldoAPagar:
+        type: "number"
+        format: "uuid"
+        example: 43322.51180207804
+    xml:
+      name: "facturaInterna"
