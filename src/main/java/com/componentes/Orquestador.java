@@ -3,12 +3,9 @@ package com.componentes;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -24,9 +21,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-//import org.json.JSONException;
-//import org.json.JSONObject;
-//import org.json.XML;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -41,6 +35,7 @@ import org.w3c.dom.NodeList;
  */
 public class Orquestador {
 	public static final String ARCHIVO_DE_TRANSFORMACION = "transformador.xslt";
+	public static final String ARCHIVO_DE_TRANSFORMACION_DOS = "transformador2.xslt";
 	public static final String ARCHIVO_SALIDA_TRANSFORMACION = "resultadoInterno.xml";
 	public static final String FORMATO_DE_RECEPCION_SERVICIO_EXTERNO = "application/xml; charset=utf-8";
 	public static final String METODO_SOLICITUD_SERVICIO_EXTERNO = "POST";
@@ -67,7 +62,7 @@ public class Orquestador {
 								+ elemento.getElementsByTagName("nombre").item(0).getTextContent();
 						resultadoInterno = despacharAServicioExterno(
 								elemento.getElementsByTagName("endpoint").item(0).getTextContent(), descripcion,
-								elemento.getElementsByTagName("nombre").item(0).getTextContent(), idFactura, valorFactura);
+								idFactura, valorFactura, elemento.getElementsByTagName("tecnologia").item(0).getTextContent());
 					}
 				}
 			}
@@ -77,11 +72,11 @@ public class Orquestador {
 		return resultadoInterno;
 	}
 
-	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion, String convenio, int idFactura, double valorFactura)
+	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion, int idFactura, double valorFactura, String tecnologia)
 			throws IOException, JAXBException, TransformerException {
 		
 		HttpURLConnection connection;
-		if (convenio.trim().equals("claro")) {
+		if (tecnologia.trim().equals("rest")) {
 			URL url = new URL(endpoint+idFactura);
 			connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
@@ -117,16 +112,16 @@ public class Orquestador {
 		}
 		InputStream xmlFacturaExterna = connection.getInputStream();
 
-		ResultadoInterno resultadoInterno = transformarAFormatoInterno(valorFactura, descripcion, xmlFacturaExterna, convenio);
+		ResultadoInterno resultadoInterno = transformarAFormatoInterno(valorFactura, descripcion, xmlFacturaExterna, tecnologia);
 		connection.disconnect();
 		return resultadoInterno;
 	}
 
-	private ResultadoInterno transformarAFormatoInterno(double valorFactura, String descripcion, InputStream xmlFacturaExterna, String convenio)
+	private ResultadoInterno transformarAFormatoInterno(double valorFactura, String descripcion, InputStream xmlFacturaExterna, String tecnologia)
 			throws TransformerException, JAXBException, IOException {
 		Source xslt;
-		if(!convenio.trim().equals("claro")){
-			xslt = new StreamSource(new File("transformador2.xslt"));
+		if(!tecnologia.trim().equals("rest")){
+			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION_DOS));
 		}else {
 			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
 		}
@@ -141,7 +136,7 @@ public class Orquestador {
 		ResultadoInterno resultadoInterno = (ResultadoInterno) jc.createUnmarshaller()
 				.unmarshal(new File(ARCHIVO_SALIDA_TRANSFORMACION));
 		
-		if(!convenio.trim().equals("claro")){
+		if(!tecnologia.trim().equals("rest")){
 			File archivo = new File(ARCHIVO_SALIDA_TRANSFORMACION);
 			FileInputStream fis = new FileInputStream(archivo);
 			byte[] data = new byte[(int) archivo.length()];
