@@ -37,7 +37,7 @@ paths:
         400:
           description: "bad input parameter"
 definitions:
-  FacturaInterna:
+  ResultadoInterno:
     type: "object"
     properties:
       idFactura:
