@@ -1,14 +1,10 @@
 package com.componentes;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
@@ -37,6 +33,7 @@ import org.w3c.dom.NodeList;
  */
 public class Orquestador {
 	public static final String ARCHIVO_DE_TRANSFORMACION = "transformador.xslt";
+	public static final String ARCHIVO_DE_TRANSFORMACION_DOS = "transformador2.xslt";
 	public static final String ARCHIVO_SALIDA_TRANSFORMACION = "facturaInterna.xml";
 	public static final String FORMATO_DE_RECEPCION_SERVICIO_EXTERNO = "application/xml";
 	public static final String METODO_SOLICITUD_SERVICIO_EXTERNO = "GET";
@@ -63,7 +60,7 @@ public class Orquestador {
 								+ elemento.getElementsByTagName("nombre").item(0).getTextContent();
 						facturaInterna = despacharAServicioExterno(
 								elemento.getElementsByTagName("endpoint").item(0).getTextContent(), descripcion,
-								elemento.getElementsByTagName("nombre").item(0).getTextContent(), idFactura);
+								idFactura, elemento.getElementsByTagName("tecnologia").item(0).getTextContent());
 					}
 				}
 			}
@@ -73,28 +70,13 @@ public class Orquestador {
 		return facturaInterna;
 	}
 
-//	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion)
-//			throws IOException, JAXBException, TransformerException {
-//		URL url = new URL(endpoint);
-//		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-//		connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
-//		connection.setRequestProperty("Accept", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
-//
-//		InputStream xmlFacturaExterna = connection.getInputStream();
-//
-//		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna);
-//		connection.disconnect();
-//		return facturaInterna;
-//	}
-
-	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion, String convenio, int idFactura)
-			throws IOException, JAXBException, TransformerException {
+	private FacturaInterna despacharAServicioExterno(String endpoint, String descripcion, int idFactura,
+			String tecnologia) throws IOException, JAXBException, TransformerException {
 		// Despacho al servicio externo correspondiente
 		HttpURLConnection connection;
-		if (convenio.trim().equals("claro")) {
-			URL url = new URL(endpoint+idFactura);
+		if (tecnologia.trim().equals("rest")) {
+			URL url = new URL(endpoint + idFactura);
 			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
 			connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
 			connection.setRequestProperty("Accept", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
 		} else {
@@ -103,9 +85,9 @@ public class Orquestador {
 			connection.setRequestMethod("GET");
 			String soapXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
 					+ "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.servicios.co/pagos/schemas\">\r\n"
-					+ "   <soapenv:Body>\r\n" + "      <sch:ReferenciaFactura>\r\n"
-					+ "         <sch:referenciaFactura>"+idFactura+"</sch:referenciaFactura>\r\n"
-					+ "      </sch:ReferenciaFactura>\r\n" + "   </soapenv:Body>\r\n" + "</soapenv:Envelope>";
+					+ "   <soapenv:Body>\r\n" + "      <sch:ReferenciaFactura>\r\n" + "         <sch:referenciaFactura>"
+					+ idFactura + "</sch:referenciaFactura>\r\n" + "      </sch:ReferenciaFactura>\r\n"
+					+ "   </soapenv:Body>\r\n" + "</soapenv:Envelope>";
 
 			connection.setRequestProperty("Content-Type", "text/xml; charset=utf-8");
 			connection.setRequestProperty("SOAPAction", "consultar");
@@ -117,19 +99,19 @@ public class Orquestador {
 
 		}
 		InputStream xmlFacturaExterna = connection.getInputStream();
-//		descripcion = convertStreamToString(xmlFacturaExterna);
+		// descripcion = convertStreamToString(xmlFacturaExterna);
 		// Transformacion del formato externo de la factura al formato interno
-		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna, convenio);
+		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna, tecnologia);
 		connection.disconnect();
 		return facturaInterna;
 	}
 
-	private FacturaInterna transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna, String convenio)
-			throws TransformerException, JAXBException, IOException {
+	private FacturaInterna transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna,
+			String tecnologia) throws TransformerException, JAXBException, IOException {
 		Source xslt;
-		if(!convenio.trim().equals("claro")){
-			xslt = new StreamSource(new File("transformador2.xslt"));
-		}else {
+		if (!tecnologia.trim().equals("rest")) {
+			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION_DOS));
+		} else {
 			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
 		}
 		Transformer transformer = TransformerFactory.newInstance().newTransformer(xslt);
@@ -140,8 +122,8 @@ public class Orquestador {
 		JAXBContext jc = JAXBContext.newInstance(FacturaInterna.class);
 		FacturaInterna facturaInterna = (FacturaInterna) jc.createUnmarshaller()
 				.unmarshal(new File(ARCHIVO_SALIDA_TRANSFORMACION));
-		
-		if(!convenio.trim().equals("claro")){
+
+		if (!tecnologia.trim().equals("rest")) {
 			File archivo = new File(ARCHIVO_SALIDA_TRANSFORMACION);
 			FileInputStream fis = new FileInputStream(archivo);
 			byte[] data = new byte[(int) archivo.length()];
@@ -149,7 +131,7 @@ public class Orquestador {
 			fis.close();
 			String xml = new String(data, "UTF-8");
 			String valores = xml.substring(117, 135);
-			
+
 			facturaInterna.setIdFactura(new Integer(valores.substring(0, 9)));
 			facturaInterna.setSaldoAPagar(new BigDecimal(valores.substring(10, 18)));
 		}
@@ -157,8 +139,8 @@ public class Orquestador {
 		return facturaInterna;
 	}
 
-//	private String convertStreamToString(java.io.InputStream is) {
-//		java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-//		return s.hasNext() ? s.next() : "";
-//	}
+	// private String convertStreamToString(java.io.InputStream is) {
+	// java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+	// return s.hasNext() ? s.next() : "";
+	// }
 }
