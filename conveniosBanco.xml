@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <conveniosBanco>
-	<convenio id="1111">
-		<nombre>claro</nombre>
-		<endpoint>http://localhost:8080/servicios/pagos/v1/payments/</endpoint>		
-	</convenio>
-	<convenio id="2222">
+	<convenio id="1234">
 		<nombre>gasNatural</nombre>
-		<endpoint>http://192.122.10.1:8080/gasNatural</endpoint>
+		<endpoint>http://ec2-18-218-36-246.us-east-2.compute.amazonaws.com:8080/gas-natural/PagosService</endpoint>
+	</convenio>
+	<convenio id="7897">
+		<nombre>claro</nombre>
+		<endpoint>http://ec2-3-16-152-105.us-east-2.compute.amazonaws.com:8080/servicios/pagos/v1/payments/</endpoint>		
 	</convenio>
 </conveniosBanco>

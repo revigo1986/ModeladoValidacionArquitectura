@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ControladorServicios {
 
-	@RequestMapping(path = "compensarFactura/{idFactura}", method = RequestMethod.DELETE,
+	@RequestMapping(path = "compensarFactura/{idFactura}/{valorFactura}", method = RequestMethod.DELETE,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     )
-    public ResultadoInterno compensarFactura(@PathVariable("idFactura") int idFactura) {
-		return new Orquestador().enrutarAServicioExterno(idFactura);
+    public ResultadoInterno compensarFactura(@PathVariable("idFactura") int idFactura, @PathVariable("valorFactura") double valorFactura) {
+		return new Orquestador().enrutarAServicioExterno(idFactura, valorFactura);
     }
 }

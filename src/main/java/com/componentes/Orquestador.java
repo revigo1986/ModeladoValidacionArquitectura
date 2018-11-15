@@ -1,8 +1,12 @@
 package com.componentes;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -36,7 +40,7 @@ public class Orquestador {
 	public static final String METODO_SOLICITUD_SERVICIO_EXTERNO = "DELETE";
 	public static final String ARCHIVO_CONVENIOS_BANCO = "conveniosBanco.xml";
 	
-	public ResultadoInterno enrutarAServicioExterno(int idFactura) {
+	public ResultadoInterno enrutarAServicioExterno(int idFactura, double valorFactura) {
 		ResultadoInterno resultadoInterno = new ResultadoInterno();
 		String descripcion = "No hay convenios disponibles";
 		resultadoInterno.setDescripcion(descripcion);
@@ -56,8 +60,8 @@ public class Orquestador {
 						descripcion = "Factura del convenio "
 								+ elemento.getElementsByTagName("nombre").item(0).getTextContent();
 						resultadoInterno = despacharAServicioExterno(
-								elemento.getElementsByTagName("endpoint").item(0).getTextContent() + idFactura,
-								descripcion);
+								elemento.getElementsByTagName("endpoint").item(0).getTextContent(), descripcion,
+								elemento.getElementsByTagName("nombre").item(0).getTextContent(), idFactura, valorFactura);
 					}
 				}
 			}
@@ -67,31 +71,75 @@ public class Orquestador {
 		return resultadoInterno;
 	}
 
-	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion)
+	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion, String convenio, int idFactura, double valorFactura)
 			throws IOException, JAXBException, TransformerException {
-		URL url = new URL(endpoint);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
-		connection.setRequestProperty("Accept", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
+		HttpURLConnection connection;
+		if (convenio.trim().equals("claro")) {
+			URL url = new URL(endpoint+idFactura);
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
+			connection.setRequestProperty("Content-Type", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
+			connection.addRequestProperty("Accept", "application/xml");
+		}else {
+			URL url = new URL(endpoint);
+			connection = (HttpURLConnection) url.openConnection();
+			String soapXML = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.servicios.co/pagos/schemas\">   \r\n" + 
+					"   <soapenv:Body>\r\n" + 
+					"      <sch:PagoResource>\r\n" + 
+					"         <sch:referenciaFactura>\r\n" + 
+					"            <sch:referenciaFactura>"+idFactura+"</sch:referenciaFactura>\r\n" + 
+					"         </sch:referenciaFactura>\r\n" + 
+					"         <sch:totalPagar>"+valorFactura+"</sch:totalPagar>\r\n" + 
+					"      </sch:PagoResource>\r\n" + 
+					"   </soapenv:Body>\r\n" + 
+					"</soapenv:Envelope>";
 
+			connection.setRequestProperty("Content-Type", "text/xml; charset=utf-8");
+			connection.setRequestProperty("SOAPAction", "compensar");
+			connection.setDoOutput(true);
+			BufferedWriter httpRequestBodyWriter = new BufferedWriter(
+					new OutputStreamWriter(connection.getOutputStream()));
+			httpRequestBodyWriter.write(soapXML);
+			httpRequestBodyWriter.close();
+		}
 		InputStream xmlFacturaExterna = connection.getInputStream();
 
-		ResultadoInterno facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna);
+		ResultadoInterno resultadoInterno = transformarAFormatoInterno(valorFactura, descripcion, xmlFacturaExterna, convenio);
 		connection.disconnect();
-		return facturaInterna;
+		return resultadoInterno;
 	}
 
-	private ResultadoInterno transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna)
-			throws TransformerException, JAXBException {
-		Source xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
+	private ResultadoInterno transformarAFormatoInterno(double valorFactura, String descripcion, InputStream xmlFacturaExterna, String convenio)
+			throws TransformerException, JAXBException, IOException {
+		Source xslt;
+		if(!convenio.trim().equals("claro")){
+			xslt = new StreamSource(new File("transformador2.xslt"));
+		}else {
+			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
+		}
+//		ResultadoInterno resultadoInterno = new ResultadoInterno();
+//		resultadoInterno.setDescripcion(convertStreamToString(xmlFacturaExterna));
 		Transformer transformer = TransformerFactory.newInstance().newTransformer(xslt);
 
-		Source text = new StreamSource(xmlFacturaExterna);
+		Source text = new StreamSource(xmlFacturaExterna);		
 		transformer.transform(text, new StreamResult(new File(ARCHIVO_SALIDA_TRANSFORMACION)));
 
 		JAXBContext jc = JAXBContext.newInstance(ResultadoInterno.class);
 		ResultadoInterno resultadoInterno = (ResultadoInterno) jc.createUnmarshaller()
 				.unmarshal(new File(ARCHIVO_SALIDA_TRANSFORMACION));
+		
+		if(!convenio.trim().equals("claro")){
+			File archivo = new File(ARCHIVO_SALIDA_TRANSFORMACION);
+			FileInputStream fis = new FileInputStream(archivo);
+			byte[] data = new byte[(int) archivo.length()];
+			fis.read(data);
+			fis.close();
+			String xml = new String(data, "UTF-8");
+			String valores = xml.substring(119, 175);
+			
+			resultadoInterno.setIdFactura(new Integer(valores.substring(0, 10)));
+			resultadoInterno.setDescripcion(valores.substring(10, 56));
+		}
 		return resultadoInterno;
 	}
 }
