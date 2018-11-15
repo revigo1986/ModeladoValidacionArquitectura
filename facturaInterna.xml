@@ -1,1 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?><facturaInterna xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+<valores>123451744459673.36</valores>
+</facturaInterna>

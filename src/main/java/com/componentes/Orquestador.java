@@ -5,10 +5,12 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -117,14 +119,19 @@ public class Orquestador {
 		InputStream xmlFacturaExterna = connection.getInputStream();
 //		descripcion = convertStreamToString(xmlFacturaExterna);
 		// Transformacion del formato externo de la factura al formato interno
-		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna);
+		FacturaInterna facturaInterna = transformarAFormatoInterno(descripcion, xmlFacturaExterna, convenio);
 		connection.disconnect();
 		return facturaInterna;
 	}
 
-	private FacturaInterna transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna)
-			throws TransformerException, JAXBException {
-		Source xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
+	private FacturaInterna transformarAFormatoInterno(String descripcion, InputStream xmlFacturaExterna, String convenio)
+			throws TransformerException, JAXBException, IOException {
+		Source xslt;
+		if(!convenio.trim().equals("claro")){
+			xslt = new StreamSource(new File("transformador2.xslt"));
+		}else {
+			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
+		}
 		Transformer transformer = TransformerFactory.newInstance().newTransformer(xslt);
 
 		Source text = new StreamSource(xmlFacturaExterna);
@@ -133,7 +140,19 @@ public class Orquestador {
 		JAXBContext jc = JAXBContext.newInstance(FacturaInterna.class);
 		FacturaInterna facturaInterna = (FacturaInterna) jc.createUnmarshaller()
 				.unmarshal(new File(ARCHIVO_SALIDA_TRANSFORMACION));
-//		FacturaInterna facturaInterna = new FacturaInterna();
+		
+		if(!convenio.trim().equals("claro")){
+			File archivo = new File(ARCHIVO_SALIDA_TRANSFORMACION);
+			FileInputStream fis = new FileInputStream(archivo);
+			byte[] data = new byte[(int) archivo.length()];
+			fis.read(data);
+			fis.close();
+			String xml = new String(data, "UTF-8");
+			String valores = xml.substring(117, 135);
+			
+			facturaInterna.setIdFactura(new Integer(valores.substring(0, 9)));
+			facturaInterna.setSaldoAPagar(new BigDecimal(valores.substring(10, 18)));
+		}
 		facturaInterna.setDescripcion(descripcion);
 		return facturaInterna;
 	}

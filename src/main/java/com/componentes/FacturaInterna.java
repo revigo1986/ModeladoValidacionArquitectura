@@ -32,6 +32,12 @@ public class FacturaInterna {
 		this.idFactura = idFactura;
 		return this;
 	}
+	
+	public FacturaInterna idFactura(Integer idFactura, BigDecimal saldoAPagar) {
+		this.idFactura = idFactura;
+		this.saldoAPagar = saldoAPagar;
+		return this;
+	}
 
 	/**
 	 * Get id
