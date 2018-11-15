@@ -1,0 +1,56 @@
+---
+swagger: "2.0"
+info:
+  description: "API para Pago de Factura"
+  version: "1.0.0"
+  title: "API Pago de Factura"
+  contact:
+    email: "you@your-company.com"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "virtserver.swaggerhub.com"
+basePath: "/revigo/ServiciosBanco/1.0.0"
+tags:
+- name: "admins"
+  description: "Secured Admin-only calls"
+- name: "developers"
+  description: "Operations available to regular developers"
+schemes:
+- "https"
+paths:
+  /pagarFactura:
+    post:
+      tags:
+      - "developers"
+      summary: "realiza pago"
+      description: "El objetivo de este servicio es pagar una factura"
+      operationId: "pago"
+      produces:
+      - "application/xml"
+      parameters: []
+      responses:
+        200:
+          description: "realiza pago de factura"
+          schema:
+            $ref: "#/definitions/ResultadoInterno"
+        400:
+          description: "bad input parameter"
+definitions:
+  ResultadoInterno:
+    type: "object"
+    properties:
+      idFactura:
+        type: "integer"
+        format: "uuid"
+        example: 1111
+      descripcion:
+        type: "string"
+        format: "uuid"
+        example: "Factura Pagada Exitosamente"
+      valorPagado:
+        type: "number"
+        format: "uuid"
+        example: 43322.51180207804
+    xml:
+      name: "resultadoInterno"
