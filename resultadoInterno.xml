@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?><resultadoInterno>
-<idFactura>1111632</idFactura>
-<descripcion>Factura Pagada Exitosamente</descripcion>
-<valorPagado/>
+<?xml version="1.0" encoding="UTF-8"?><resultadoInterno xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+<valores>1234517444Factura Pagada Exitosamente</valores>
 </resultadoInterno>

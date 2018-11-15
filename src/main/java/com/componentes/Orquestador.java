@@ -2,6 +2,8 @@ package com.componentes;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -64,8 +66,8 @@ public class Orquestador {
 						descripcion = "Factura del convenio "
 								+ elemento.getElementsByTagName("nombre").item(0).getTextContent();
 						resultadoInterno = despacharAServicioExterno(
-								elemento.getElementsByTagName("endpoint").item(0).getTextContent() + idFactura,
-								descripcion, idFactura, valorFactura);
+								elemento.getElementsByTagName("endpoint").item(0).getTextContent(), descripcion,
+								elemento.getElementsByTagName("nombre").item(0).getTextContent(), idFactura, valorFactura);
 					}
 				}
 			}
@@ -75,32 +77,61 @@ public class Orquestador {
 		return resultadoInterno;
 	}
 
-	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion, int idFactura, double valorFactura)
+	private ResultadoInterno despacharAServicioExterno(String endpoint, String descripcion, String convenio, int idFactura, double valorFactura)
 			throws IOException, JAXBException, TransformerException {
-		URL url = new URL(endpoint);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
-		connection.setRequestProperty("Content-Type", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
-		connection.addRequestProperty("Accept", "application/xml");
-		connection.setDoOutput(true);
 		
-		BufferedWriter httpRequestBodyWriter = 
-	            new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-	    httpRequestBodyWriter.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><factura><idFactura>"+idFactura+"</idFactura><valorFactura>"+valorFactura+"</valorFactura></factura>");
-	    httpRequestBodyWriter.close();
-		
+		HttpURLConnection connection;
+		if (convenio.trim().equals("claro")) {
+			URL url = new URL(endpoint+idFactura);
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
+			connection.setRequestProperty("Content-Type", FORMATO_DE_RECEPCION_SERVICIO_EXTERNO);
+			connection.addRequestProperty("Accept", "application/xml");
+			connection.setDoOutput(true);
+			BufferedWriter httpRequestBodyWriter = 
+		            new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
+		    httpRequestBodyWriter.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><factura><idFactura>"+idFactura+"</idFactura><valorFactura>"+valorFactura+"</valorFactura></factura>");
+		    httpRequestBodyWriter.close();
+		}else {
+			URL url = new URL(endpoint);
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod(METODO_SOLICITUD_SERVICIO_EXTERNO);
+			String soapXML = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:sch=\"http://www.servicios.co/pagos/schemas\">   \r\n" + 
+					"   <soapenv:Body>\r\n" + 
+					"      <sch:PagoResource>\r\n" + 
+					"         <sch:referenciaFactura>\r\n" + 
+					"            <sch:referenciaFactura>"+idFactura+"</sch:referenciaFactura>\r\n" + 
+					"         </sch:referenciaFactura>\r\n" + 
+					"         <sch:totalPagar>"+valorFactura+"</sch:totalPagar>\r\n" + 
+					"      </sch:PagoResource>\r\n" + 
+					"   </soapenv:Body>\r\n" + 
+					"</soapenv:Envelope>";
+
+			connection.setRequestProperty("Content-Type", "text/xml; charset=utf-8");
+			connection.setRequestProperty("SOAPAction", "pagar");
+			connection.setDoOutput(true);
+			BufferedWriter httpRequestBodyWriter = new BufferedWriter(
+					new OutputStreamWriter(connection.getOutputStream()));
+			httpRequestBodyWriter.write(soapXML);
+			httpRequestBodyWriter.close();
+		}
 		InputStream xmlFacturaExterna = connection.getInputStream();
 
-		ResultadoInterno resultadoInterno = transformarAFormatoInterno(valorFactura, descripcion, xmlFacturaExterna);
+		ResultadoInterno resultadoInterno = transformarAFormatoInterno(valorFactura, descripcion, xmlFacturaExterna, convenio);
 		connection.disconnect();
 		return resultadoInterno;
 	}
 
-	private ResultadoInterno transformarAFormatoInterno(double valorFactura, String descripcion, InputStream xmlFacturaExterna)
-			throws TransformerException, JAXBException {
+	private ResultadoInterno transformarAFormatoInterno(double valorFactura, String descripcion, InputStream xmlFacturaExterna, String convenio)
+			throws TransformerException, JAXBException, IOException {
+		Source xslt;
+		if(!convenio.trim().equals("claro")){
+			xslt = new StreamSource(new File("transformador2.xslt"));
+		}else {
+			xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
+		}
 //		ResultadoInterno resultadoInterno = new ResultadoInterno();
 //		resultadoInterno.setDescripcion(convertStreamToString(xmlFacturaExterna));
-		Source xslt = new StreamSource(new File(ARCHIVO_DE_TRANSFORMACION));
 		Transformer transformer = TransformerFactory.newInstance().newTransformer(xslt);
 
 		Source text = new StreamSource(xmlFacturaExterna);		
@@ -109,6 +140,19 @@ public class Orquestador {
 		JAXBContext jc = JAXBContext.newInstance(ResultadoInterno.class);
 		ResultadoInterno resultadoInterno = (ResultadoInterno) jc.createUnmarshaller()
 				.unmarshal(new File(ARCHIVO_SALIDA_TRANSFORMACION));
+		
+		if(!convenio.trim().equals("claro")){
+			File archivo = new File(ARCHIVO_SALIDA_TRANSFORMACION);
+			FileInputStream fis = new FileInputStream(archivo);
+			byte[] data = new byte[(int) archivo.length()];
+			fis.read(data);
+			fis.close();
+			String xml = new String(data, "UTF-8");
+			String valores = xml.substring(119, 175);
+			
+			resultadoInterno.setIdFactura(new Integer(valores.substring(0, 10)));
+			resultadoInterno.setDescripcion(valores.substring(10, 56));
+		}
 		resultadoInterno.setValorPagado(new BigDecimal(valorFactura));
 		return resultadoInterno;
 	}
